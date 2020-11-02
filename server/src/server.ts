@@ -191,6 +191,20 @@ connection.onCompletion(
 
 	const targetLine = getTargetLine(documents, _textDocumentPosition)
 	// console.log(targetLine)
+
+	console.log('<------------')
+	console.log(targetLine.match(/\s*()\$this\->/))
+	console.log('------------->')
+	if (targetLine.match(/\s*()\$this\->$/)) {
+		return Object.keys(availableList).map( item => {
+			return {
+				label: item,
+				kind: CompletionItemKind.Module
+			}
+		})
+	}
+
+	// This one is for model
 	if (targetLine.match(/\s*()\$this\->model->/)) {
 
 		return model.map( item => {
