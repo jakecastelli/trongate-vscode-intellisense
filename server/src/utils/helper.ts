@@ -1,14 +1,14 @@
 // @ts-nocheck
-import {readdirSync} from 'fs';
-import {TextDocumentPositionParams, TextDocuments} from 'vscode-languageserver'
+import { readdirSync } from 'fs';
+import { TextDocumentPositionParams, TextDocuments } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export function getTargetLine(documents: TextDocuments<TextDocument>, textDocPos: number, uri) {
-	try{
-	const lines = documents.get(uri).getText().split('\n');
-	// const targetLine = lines[textDocPos.position.line];
-	const targetLine = lines[textDocPos];
-	return targetLine;
+	try {
+		const lines = documents.get(uri).getText().split('\n');
+		// const targetLine = lines[textDocPos.position.line];
+		const targetLine = lines[textDocPos];
+		return targetLine;
 	} catch (err) {
 		console.log(err)
 	}
@@ -20,10 +20,10 @@ export function getAllTheModuleFolders(pathStr) {
 }
 
 const getDirectories = source =>
-  readdirSync(source, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-	.map(dirent => dirent.name)
-	
+	readdirSync(source, { withFileTypes: true })
+		.filter(dirent => dirent.isDirectory())
+		.map(dirent => dirent.name)
+
 const getFiles = source =>
 	readdirSync(source, { withFileTypes: true })
 		.filter(file => file.isFile())
@@ -35,7 +35,7 @@ const getFiles = source =>
 export function checkIsTrongateProject(filePath) {
 	const allModules = getDirectories(filePath)
 	const TRONGATE_FILE_REQUIREMENT = ['config', 'engine', 'modules', 'public', 'templates']
-	const result = TRONGATE_FILE_REQUIREMENT.every(item => allModules.includes(item)) 
+	const result = TRONGATE_FILE_REQUIREMENT.every(item => allModules.includes(item))
 	return result;
 }
 
@@ -43,16 +43,16 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 	let lookUpLine = pos - 1
 	let viewModuleName = ''
 
-	while(true) {
+	while (true) {
 		const oneLineAbove = getTargetLine(doc, lookUpLine, uri)
 		if (isFalseLine(oneLineAbove)) {
 			// comments // or *
-				lookUpLine -= 1
-				continue
-			}
+			lookUpLine -= 1
+			continue
+		}
 		if (isLastLine(oneLineAbove)) {
-			// function xxx () {
-			break
+			// function xxx () 
+			break;
 		}
 
 		if (findViewModule(oneLineAbove)) {
@@ -65,6 +65,7 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 
 		// nothing here, one line above again
 		lookUpLine -= 1
+		if (lookUpLine < 0) break; // no line above, so it ended
 	}
 	if (viewModuleName === '') return;
 
@@ -77,15 +78,15 @@ function isFalseLine(line: string) {
 	const findCommentsMatch = /^\s*(\/\/|\*)/
 	if (line.match(findCommentsMatch)) {
 		return true
-	} 
+	}
 	return false
 }
 
 function isLastLine(line: string) {
 	const findFunctionDecorationMatch = /\s*function\s*\w*\s*\(/
-	if(line.match(findFunctionDecorationMatch)) {
+	if (line.match(findFunctionDecorationMatch)) {
 		return true
-	} 
+	}
 	return false
 }
 

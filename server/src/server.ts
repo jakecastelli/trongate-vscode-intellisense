@@ -60,7 +60,7 @@ connection.onInitialize((params: InitializeParams) => {
 	console.log('======================================')
 	// let projectPath = params.workspaceFolders[0].uri.fsPath
 	let projectPath = params.rootPath
-	if(checkIsTrongateProject(projectPath)){
+	if (checkIsTrongateProject(projectPath)) {
 		// Update GLOBAL_SETTINGS
 		GLOBAL_SETTINGS.projectLocation = projectPath
 		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(projectPath)]
@@ -71,17 +71,17 @@ connection.onInitialize((params: InitializeParams) => {
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
-			textDocumentSync:TextDocumentSyncKind.Full,
+			textDocumentSync: TextDocumentSyncKind.Full,
 			// documentSymbolProvider:true,
 			// definitionProvider :true,
-			hoverProvider : true,
-			signatureHelpProvider : {
-				triggerCharacters: [ '('],
-				retriggerCharacters: [ ',' ]
+			hoverProvider: true,
+			signatureHelpProvider: {
+				triggerCharacters: ['('],
+				retriggerCharacters: [',']
 			},
 			completionProvider: {
 				resolveProvider: false,
-				triggerCharacters:['>', '\'','"'],
+				triggerCharacters: ['>', '\'', '"'],
 				// leave :: for another day
 				// triggerCharacters:['>',':']
 			},
@@ -200,103 +200,106 @@ connection.onDidChangeWatchedFiles(_change => {
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 
-	console.log('--------------------------------------')
-	console.log(GLOBAL_SETTINGS.allModules)
-	console.log('--------------------------------------')
+		console.log('--------------------------------------')
+		console.log(GLOBAL_SETTINGS.allModules)
+		console.log('--------------------------------------')
 
-	/**
-	 *  ' or " or > to trigger auto complete 
-	 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
-	 *									but we would like to include it in the future 
-		1&.						  =>	show view files if possible..
-	 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
-	 * 	3.  Module::run(')		  =>	show all the module first, and then when user types / , we display the public functions with this module
-	 * 								
-	 */
+		/**
+		 *  ' or " or > to trigger auto complete 
+		 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
+		 *									but we would like to include it in the future 
+			1&.						  =>	show view files if possible..
+		 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
+		 * 	3.  Modules::run(')		  =>	show all the module first, and then when user types / , we display the public functions with this module
+		 * 	Modules:run('xxxx/xxxxx')
+		 */
 
-	if(GLOBAL_SETTINGS.allModules.length === 0 ) return
+		// if it is not a Trongate project then don't do anything
+		if (!GLOBAL_SETTINGS.projectLocation) return
+		if (GLOBAL_SETTINGS.allModules.length === 0) return
 
-	const targetLineNumber = _textDocumentPosition.position.line
-	const documentURI = _textDocumentPosition.textDocument.uri
-	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+		const targetLineNumber = _textDocumentPosition.position.line
+		const documentURI = _textDocumentPosition.textDocument.uri
+		const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
 
-	const loadModuleMatch = /\$this->module\((''|"")\)/
-	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
-	if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
-		 console.log('oh yeah loading modules now!!!')
-		 GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
-	return GLOBAL_SETTINGS.allModules.map(item => {
-		return {
-		label: item,
-		kind: CompletionItemKind.Module
-	}})
-	}
-
-	// Load up view files
-	const viewFileMatch = /\$data\[('view_file'|"view_file")\]\s*=\s*(''|"")/
-	// const viewFileMatch = /(\$data\[('view_file'|"view_file")\]\s*=\s*(''|""))|\$this->view\((''|"")\)/
-	
-	if (targetLine?.match(viewFileMatch)) {
-		// look up one line
-		const viewFiles = getViewFiles(documents, targetLineNumber, GLOBAL_SETTINGS.projectLocation, documentURI)
-		if (viewFiles) {
-			return viewFiles.map(item => {
+		const loadModuleMatch = /\$this->module\((''|"")\)/
+		const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
+		if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
+			console.log('oh yeah loading modules now!!!')
+			GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+			return GLOBAL_SETTINGS.allModules.map(item => {
 				return {
 					label: item,
-					kind: CompletionItemKind.File
+					kind: CompletionItemKind.Module
 				}
 			})
 		}
-	}
 
-	// return [];
+		// ===> Load up view files <===
+		const viewFileMatch = /\$data\[('view_file'|"view_file")\]\s*=\s*(''|"")/
+		// const viewFileMatch = /(\$data\[('view_file'|"view_file")\]\s*=\s*(''|""))|\$this->view\((''|"")\)/
 
-	
+		if (targetLine?.match(viewFileMatch)) {
+			// look up line by line til end or find the module name
+			const viewFiles = getViewFiles(documents, targetLineNumber, GLOBAL_SETTINGS.projectLocation, documentURI)
+			if (viewFiles) {
+				return viewFiles.map(item => {
+					return {
+						label: item,
+						kind: CompletionItemKind.File
+					}
+				})
+			}
+		}
 
-	// console.log('it is working!')
+		// return [];
 
-	// if (_textDocumentPosition.textDocument.uri.indexOf(loader.loader.root.toString())<0) return [];
 
-	// let lines = documents.get(_textDocumentPosition).getText().split('\n');
-	// console.log(lines)
 
-	// let targetLine = lines[_textDocumentPosition.position.line]
+		// console.log('it is working!')
 
-	// const targetLine = getTargetLine(documents, _textDocumentPosition)
-	// console.log(targetLine)
+		// if (_textDocumentPosition.textDocument.uri.indexOf(loader.loader.root.toString())<0) return [];
 
-	// console.log('<------------')
-	// console.log(targetLine.match(/\s*()\$this\->/))
-	// console.log('------------->')
-	// if (targetLine.match(/\s*()\$this\->$/)) {
-	// 	return Object.keys(availableList).map( item => {
-	// 		return {
-	// 			label: item,
-	// 			kind: CompletionItemKind.Module
-	// 		}
-	// 	})
-	// }
+		// let lines = documents.get(_textDocumentPosition).getText().split('\n');
+		// console.log(lines)
 
-	// This one is for model
-	// if (targetLine.match(/\s*()\$this\->model->/)) {
+		// let targetLine = lines[_textDocumentPosition.position.line]
 
-	// 	return model.map( item => {
-	// 		return {
-	// 			label: item.label,
-	// 			kind: CompletionItemKind.Function,
-	// 			data: item.data,
-	// 			documentation: item.doc,
-	// 			detail: item.shortDoc
-	// 		}
-	// 	})
-	// }
+		// const targetLine = getTargetLine(documents, _textDocumentPosition)
+		// console.log(targetLine)
+
+		// console.log('<------------')
+		// console.log(targetLine.match(/\s*()\$this\->/))
+		// console.log('------------->')
+		// if (targetLine.match(/\s*()\$this\->$/)) {
+		// 	return Object.keys(availableList).map( item => {
+		// 		return {
+		// 			label: item,
+		// 			kind: CompletionItemKind.Module
+		// 		}
+		// 	})
+		// }
+
+		// This one is for model
+		// if (targetLine.match(/\s*()\$this\->model->/)) {
+
+		// 	return model.map( item => {
+		// 		return {
+		// 			label: item.label,
+		// 			kind: CompletionItemKind.Function,
+		// 			data: item.data,
+		// 			documentation: item.doc,
+		// 			detail: item.shortDoc
+		// 		}
+		// 	})
+		// }
 	}
 );
 
-connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):SignatureHelp=>{
+connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): SignatureHelp => {
 	return
 	let temp;
-	
+
 	// Implement logic here
 
 	// let lines = documents.get(_textDocumentPosition.textDocument.uri).getText().split('\n');
@@ -313,18 +316,18 @@ connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):Si
 	console.log(className)
 
 
-	if (Object.keys(availableList).find( item => item === className)) {
+	if (Object.keys(availableList).find(item => item === className)) {
 		// Extract function name
 		const functionName = match[0].split('->')[2]
-		temp = availableList[className].find( item => item.label === functionName)
+		temp = availableList[className].find(item => item.label === functionName)
 	}
 	if (!temp) return null
 
 
 	return {
-		signatures: [ {label: temp.signature, documentation: temp.doc} ],
-			activeSignature: 0,
-			activeParameter: null
+		signatures: [{ label: temp.signature, documentation: temp.doc }],
+		activeSignature: 0,
+		activeParameter: null
 	}
 
 	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
@@ -333,12 +336,12 @@ connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):Si
 	// 	documents.get(position.textDocument.uri).getText());
 });
 
-connection.onHover((_textDocumentPosition:TextDocumentPositionParams):Hover=>{
+connection.onHover((_textDocumentPosition: TextDocumentPositionParams): Hover => {
 	return
 
 	// If the user hover over the function, then we show them the signature and docs
 	let temp;
-	
+
 	// Implement logic here
 
 	let lines = documents.get(_textDocumentPosition.textDocument.uri).getText().split('\n');
@@ -353,18 +356,20 @@ connection.onHover((_textDocumentPosition:TextDocumentPositionParams):Hover=>{
 	console.log(className)
 
 
-	if (Object.keys(availableList).find( item => item === className)) {
+	if (Object.keys(availableList).find(item => item === className)) {
 		// Extract function name
 		const functionName = match[0].split('->')[2]
-		temp = availableList[className].find( item => item.label === functionName)
+		temp = availableList[className].find(item => item.label === functionName)
 	}
 	if (!temp) return null
 
-	return {contents: {
-		language: 'markdown',
-		value: `${temp.signature}\n\n${temp.doc}
+	return {
+		contents: {
+			language: 'markdown',
+			value: `${temp.signature}\n\n${temp.doc}
 		`
-	}, }
+		},
+	}
 
 	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
 })
