@@ -57,7 +57,7 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 
 		if (findViewModule(oneLineAbove)) {
 			const resultModuleName = getModuleName(oneLineAbove)
-			if (resultModuleName != '') {
+			if (resultModuleName !== '') {
 				viewModuleName = resultModuleName;
 				break;
 			}
@@ -66,6 +66,7 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 		// nothing here, one line above again
 		lookUpLine -= 1
 	}
+	if (viewModuleName === '') return;
 
 	const viewFileLocation = `${projectLocation}/modules/${viewModuleName}/views`
 	const viewFileArr = getFiles(viewFileLocation)
