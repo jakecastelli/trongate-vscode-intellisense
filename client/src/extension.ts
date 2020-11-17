@@ -4,6 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
+import {readdirSync} from 'fs';
 import { workspace, ExtensionContext, TextDocument, OutputChannel, WorkspaceFolder, Uri, window, StatusBarItem } from 'vscode';
 
 
@@ -60,9 +61,15 @@ export function activate(context: ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	client.registerProposedFeatures();
-	client.start();
-	client.onReady().then(() => window.showInformationMessage('it is on!'));
+	const fsPath =workspace.workspaceFolders[0].uri.fsPath
+	const isTrongateProject = checkIsTrongateProject(fsPath)
+	if(isTrongateProject) {
+		client.registerProposedFeatures();
+		client.start();
+		client.onReady().then(() => {
+			console.log('ok, it is on')
+		});
+	}
 }
 
 export function deactivate(): Thenable<void> | undefined {
@@ -70,4 +77,29 @@ export function deactivate(): Thenable<void> | undefined {
 		return undefined;
 	}
 	return client.stop();
+}
+
+function getAllTheModuleFolders(pathStr) {
+	const filePath = pathStr
+	const isTrongateProject = checkIsTrongateProject(filePath)
+	if (isTrongateProject) {
+		return getDirectories(filePath + '/modules')
+	} else {
+		return []
+	}
+}
+
+const getDirectories = source =>
+  readdirSync(source, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name)
+
+function checkIsTrongateProject(filePath) {
+	const allModules = getDirectories(filePath)
+	const TRONGATE_FILE_REQUIREMENT = ['config', 'engine', 'modules', 'public', 'templates']
+	const result = TRONGATE_FILE_REQUIREMENT.every(item => allModules.includes(item)) 
+	return result;
+	// console.log('Is this a trongate module?')
+	// console.log(result)
+	// console.log(allModules)
 }

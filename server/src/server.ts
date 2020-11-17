@@ -26,7 +26,13 @@ import { URI } from 'vscode-uri';
 
 import * as loader from './control'
 import { model } from './docs'
-import { getTargetLine } from './utils/index'
+import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject } from './utils/index'
+
+let GLOBAL_SETTINGS = {
+	allModules: [],
+	isTrongateProject: false,
+	projectLocation: null
+}
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -49,6 +55,16 @@ let hasDiagnosticRelatedInformationCapability: boolean = false;
 // --------------- no idea what this junk is..
 
 connection.onInitialize((params: InitializeParams) => {
+	console.log('======================================')
+	console.log(params)
+	console.log('======================================')
+	// let projectPath = params.workspaceFolders[0].uri.fsPath
+	let projectPath = params.rootPath
+	if(checkIsTrongateProject(projectPath)){
+		// Update GLOBAL_SETTINGS
+		GLOBAL_SETTINGS.projectLocation = projectPath
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(projectPath)]
+	}
 	loader.loader.root = URI.parse(params.rootUri);
 	console.log(loader.loader.root)
 	//Seems here is the magic starting to happen...
@@ -65,7 +81,7 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			completionProvider: {
 				resolveProvider: false,
-				triggerCharacters:['>', '\''],
+				triggerCharacters:['>', '\'','"'],
 				// leave :: for another day
 				// triggerCharacters:['>',':']
 			},
@@ -169,11 +185,13 @@ documents.onDidClose(e => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
 	// validateTextDocument(change.document);
+	// console.log(change)
+	// console.log('heyy are you changing something??')
 });
+
 
 connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
 });
 
 // This handler provides the initial list of the completion items.
@@ -182,14 +200,38 @@ connection.onDidChangeWatchedFiles(_change => {
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 
+	console.log('--------------------------------------')
+	console.log(GLOBAL_SETTINGS.allModules)
+	console.log('--------------------------------------')
+
 	/**
 	 *  ' or " or > to trigger auto complete 
 	 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
 	 *									but we would like to include it in the future 
+		1&.						  =>	show view files if possible..
 	 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
 	 * 	3.  Module::run(')		  =>	show all the module first, and then when user types / , we display the public functions with this module
-	 * 									or we directly concat module and function in the format of xxx/xxx and display to the user
+	 * 								
 	 */
+
+	if(GLOBAL_SETTINGS.allModules.length === 0 ) return
+	const targetLine = getTargetLine(documents, _textDocumentPosition)
+	const loadModuleMatch = /\$this->module\((''|"")\)/
+	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s* (''|"")/
+	console.log(targetLine.match(loadModuleMatch))
+
+	if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
+		 console.log('oh yeah loading modules now!!!')
+		 GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+	
+	return GLOBAL_SETTINGS.allModules.map(item => {
+		return {
+		label: item,
+		kind: CompletionItemKind.Module
+	}
+	})}
+
+	
 
 	// console.log('it is working!')
 
@@ -232,6 +274,7 @@ connection.onCompletion(
 );
 
 connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):SignatureHelp=>{
+	return
 	let temp;
 	
 	// Implement logic here
@@ -271,6 +314,7 @@ connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):Si
 });
 
 connection.onHover((_textDocumentPosition:TextDocumentPositionParams):Hover=>{
+	return
 
 	// If the user hover over the function, then we show them the signature and docs
 	let temp;
