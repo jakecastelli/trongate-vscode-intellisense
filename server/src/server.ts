@@ -60,12 +60,12 @@ connection.onInitialize((params: InitializeParams) => {
 			// definitionProvider :true,
 			hoverProvider : true,
 			signatureHelpProvider : {
-				triggerCharacters: [ '(' ],
+				triggerCharacters: [ '('],
 				retriggerCharacters: [ ',' ]
 			},
 			completionProvider: {
 				resolveProvider: false,
-				triggerCharacters:['>']
+				triggerCharacters:['>', '\''],
 				// leave :: for another day
 				// triggerCharacters:['>',':']
 			},
@@ -182,41 +182,52 @@ connection.onDidChangeWatchedFiles(_change => {
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 
-	if (_textDocumentPosition.textDocument.uri.indexOf(loader.loader.root.toString())<0) return [];
+	/**
+	 *  ' or " or > to trigger auto complete 
+	 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
+	 *									but we would like to include it in the future 
+	 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
+	 * 	3.  Module::run(')		  =>	show all the module first, and then when user types / , we display the public functions with this module
+	 * 									or we directly concat module and function in the format of xxx/xxx and display to the user
+	 */
+
+	// console.log('it is working!')
+
+	// if (_textDocumentPosition.textDocument.uri.indexOf(loader.loader.root.toString())<0) return [];
 
 	// let lines = documents.get(_textDocumentPosition).getText().split('\n');
 	// console.log(lines)
 
 	// let targetLine = lines[_textDocumentPosition.position.line]
 
-	const targetLine = getTargetLine(documents, _textDocumentPosition)
+	// const targetLine = getTargetLine(documents, _textDocumentPosition)
 	// console.log(targetLine)
 
-	console.log('<------------')
-	console.log(targetLine.match(/\s*()\$this\->/))
-	console.log('------------->')
-	if (targetLine.match(/\s*()\$this\->$/)) {
-		return Object.keys(availableList).map( item => {
-			return {
-				label: item,
-				kind: CompletionItemKind.Module
-			}
-		})
-	}
+	// console.log('<------------')
+	// console.log(targetLine.match(/\s*()\$this\->/))
+	// console.log('------------->')
+	// if (targetLine.match(/\s*()\$this\->$/)) {
+	// 	return Object.keys(availableList).map( item => {
+	// 		return {
+	// 			label: item,
+	// 			kind: CompletionItemKind.Module
+	// 		}
+	// 	})
+	// }
 
 	// This one is for model
-	if (targetLine.match(/\s*()\$this\->model->/)) {
+	// if (targetLine.match(/\s*()\$this\->model->/)) {
 
-		return model.map( item => {
-			return {
-				label: item.label,
-				kind: CompletionItemKind.Function,
-				data: item.data,
-				documentation: item.doc,
-				detail: item.shortDoc
-			}
-		})
-	}
+	// 	return model.map( item => {
+	// 		return {
+	// 			label: item.label,
+	// 			kind: CompletionItemKind.Function,
+	// 			data: item.data,
+	// 			documentation: item.doc,
+	// 			detail: item.shortDoc
+	// 		}
+	// 	})
+	// }
 	}
 );
 
