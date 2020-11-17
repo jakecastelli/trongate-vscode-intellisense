@@ -26,7 +26,7 @@ import { URI } from 'vscode-uri';
 
 import * as loader from './control'
 import { model } from './docs'
-import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject } from './utils/index'
+import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles } from './utils/index'
 
 let GLOBAL_SETTINGS = {
 	allModules: [],
@@ -215,21 +215,41 @@ connection.onCompletion(
 	 */
 
 	if(GLOBAL_SETTINGS.allModules.length === 0 ) return
-	const targetLine = getTargetLine(documents, _textDocumentPosition)
-	const loadModuleMatch = /\$this->module\((''|"")\)/
-	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s* (''|"")/
-	console.log(targetLine.match(loadModuleMatch))
 
+	const targetLineNumber = _textDocumentPosition.position.line
+	const documentURI = _textDocumentPosition.textDocument.uri
+	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+
+	const loadModuleMatch = /\$this->module\((''|"")\)/
+	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
 	if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
 		 console.log('oh yeah loading modules now!!!')
 		 GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
-	
 	return GLOBAL_SETTINGS.allModules.map(item => {
 		return {
 		label: item,
 		kind: CompletionItemKind.Module
+	}})
 	}
-	})}
+
+	// Load up view files
+	const viewFileMatch = /\$data\[('view_file'|"view_file")\]\s*=\s*(''|"")/
+	// const viewFileMatch = /(\$data\[('view_file'|"view_file")\]\s*=\s*(''|""))|\$this->view\((''|"")\)/
+	
+	if (targetLine?.match(viewFileMatch)) {
+		// look up one line
+		const viewFiles = getViewFiles(documents, targetLineNumber, GLOBAL_SETTINGS.projectLocation, documentURI)
+		if (viewFiles) {
+			return viewFiles.map(item => {
+				return {
+					label: item,
+					kind: CompletionItemKind.File
+				}
+			})
+		}
+	}
+
+	// return [];
 
 	
 
@@ -283,7 +303,7 @@ connection.onSignatureHelp((_textDocumentPosition:TextDocumentPositionParams):Si
 	// console.log(lines)
 	// let targetLine = lines[_textDocumentPosition.position.line]
 	// let targetLine = lines[_textDocumentPosition.position.line]
-	const targetLine = getTargetLine(documents, _textDocumentPosition)
+	const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
 	const regexForMatch = /\s*()\$this\->\w*->\w*/
 	const match = targetLine.match(regexForMatch)
 	if (!match) return null
