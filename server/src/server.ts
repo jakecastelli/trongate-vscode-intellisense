@@ -26,7 +26,7 @@ import { URI } from 'vscode-uri';
 
 import * as loader from './control'
 import { model } from './docs'
-import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles } from './utils/index'
+import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles, isFalseLine, parseModule } from './utils/index'
 
 let GLOBAL_SETTINGS = {
 	allModules: [],
@@ -204,7 +204,8 @@ connection.onCompletion(
 		console.log(GLOBAL_SETTINGS.allModules)
 		console.log('--------------------------------------')
 
-		/**
+		/** ROAD MAP
+		 * 
 		 *  ' or " or > to trigger auto complete 
 		 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
 		 *									but we would like to include it in the future 
@@ -212,15 +213,20 @@ connection.onCompletion(
 		 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
 		 * 	3.  Modules::run(')		  =>	show all the module first, and then when user types / , we display the public functions with this module
 		 * 	Modules:run('xxxx/xxxxx')
+		 * 
+		 * 
 		 */
+
 
 		// if it is not a Trongate project then don't do anything
 		if (!GLOBAL_SETTINGS.projectLocation) return
 		if (GLOBAL_SETTINGS.allModules.length === 0) return
 
+		// ===> Load up module names from the modules folder <===
 		const targetLineNumber = _textDocumentPosition.position.line
 		const documentURI = _textDocumentPosition.textDocument.uri
 		const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+		if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
 
 		const loadModuleMatch = /\$this->module\((''|"")\)/
 		const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
@@ -251,6 +257,40 @@ connection.onCompletion(
 				})
 			}
 		}
+
+		// ===> Load up functions and properties from another module if user does -> <===
+		const loadUpFunctionMatch = /\$this->\w*->/
+		if (targetLine?.match(loadUpFunctionMatch)) {
+			// update the modules first to see if there is any change
+			GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+			const match = targetLine.match(loadUpFunctionMatch)[0]
+			const result = parseModule(match, GLOBAL_SETTINGS)
+
+			if (result) {
+				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				console.log(result)
+				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				// return the result if there is any match
+				return result.map(item => {
+					if (item.length === 0) return []
+
+					return {
+						label: item.funcNames,
+						kind: CompletionItemKind.Function,
+						documentation: item.docs,
+						// detail: item.shortDoc,
+						detail: item.params
+					}
+				})
+			}
+		}
+
+
+
+
+
+
+
 
 		// return [];
 

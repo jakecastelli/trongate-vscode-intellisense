@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { readdirSync } from 'fs';
+import * as path from 'path'
+import { readdirSync, readFileSync } from 'fs';
 import { TextDocumentPositionParams, TextDocuments } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -74,8 +75,11 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 	return viewFileArr
 }
 
-function isFalseLine(line: string) {
-	const findCommentsMatch = /^\s*(\/\/|\*)/
+export function isFalseLine(line: string) {
+	/**
+	 * match // or /* or *
+	 */
+	const findCommentsMatch = /^\s*(\/\/|\/\*|\*)/
 	if (line.match(findCommentsMatch)) {
 		return true
 	}
@@ -104,3 +108,178 @@ function getModuleName(line: string) {
 	const result = match.split('').filter(i => i !== '\'' && i !== '"').join('')
 	return result
 }
+
+export function parseModule(line: string, GLOBAL_SETTINGS) {
+
+	const moduleName = line.split('->')[1];
+	const firstUpperModuleName = moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
+	console.log('===>')
+	console.log(moduleName)
+	console.log('<===')
+	if (!GLOBAL_SETTINGS.allModules.includes(moduleName)) {
+		// no match found, terminate the parsing
+		return
+	}
+	// const targetModuleControllerFileLocation = GLOBAL_SETTINGS.projectLocation
+
+	const targetControllerLocation = path.join(GLOBAL_SETTINGS.projectLocation, 'modules', moduleName, 'controllers', firstUpperModuleName + '.php')
+	console.log(targetControllerLocation)
+
+	// Read file
+	try {
+		const targetControllerContent = readFileSync(targetControllerLocation, { encoding: 'utf8' });
+		// console.log(targetControllerContent)
+		const functionResult = extractFunctions(targetControllerContent)
+		return functionResult
+
+	} catch (error) {
+		console.log(error)
+	}
+}
+
+function extractFunctions(content: string) {
+
+	console.log('hello ??????????????????')
+
+	const engine = require("php-parser");
+
+	var DocParser = require('doc-parser');
+	var reader = new DocParser();
+
+	const parser = new engine({
+		parser: {
+			extractDoc: true,
+			php7: true,
+		},
+		ast: {
+			withPositions: true,
+		},
+	});
+	// const result = parser.tokenGetAll(content).filter((token: Array<any>) => {
+	// 	return (
+
+	// 		// token[0] === "T_STRING"
+	// 		// token[0] === "" 
+
+
+	// 		token[0] !== "T_WHITESPACE" &&
+	// 		token[0] !== "T_COMMENT" &&
+	// 		token[0] !== "T_OPEN_TAG" &&
+	// 		token[0] !== "T_INLINE_HTML"
+	// 	);
+	// })
+	// 	.map((token: Array<any>, index: number) => {
+	// 		if (Array.isArray(token)) {
+	// 			return [...token, index];
+	// 		}
+	// 	})
+	const result = parser.parseCode(content, {
+		parser: {
+			debug: false,
+			locations: false,
+			extractDoc: true,
+			suppressErrors: false
+		},
+		lexer: {
+			all_tokens: false,
+			comment_tokens: false,
+			mode_eval: false,
+			asp_tags: false,
+			short_tags: false
+		}
+	})
+	console.log(result)
+
+	const allMethods = result['children'][0]['body'].filter(item => item.kind === 'method')
+	const refine = allMethods.map(item => {
+		const identifier = item.name.name
+
+
+		if (identifier.charAt(0) === '_' || item.visibility === 'private') {
+			// private method
+			return []
+		}
+
+		const parameters = item.arguments.map((arg, index) => {
+			if (index === 0) {
+				return `[$${arg.name.name}]`
+			}
+			return `[, $${arg.name.name}]`
+		}).join('')
+
+		const rowDocs = item.leadingComments[0].value
+		const docs = reader.parse(rowDocs).summary
+
+		console.log('------>>>>>>>>>>>>')
+		console.log('------>>>>>>>>>>>>')
+		console.log(docs)
+		console.log('------>>>>>>>>>>>>')
+		console.log('------>>>>>>>>>>>>')
+
+		return {
+			funcNames: identifier,
+			params: `${identifier}(${parameters})`,
+			docs: docs
+		}
+	})
+
+	console.log('(((((((((((((((((((((((')
+	console.log(refine)
+	console.log(')))))))))))))))))))))))')
+	return refine
+
+	// const parser = new engine({
+	// 	// some options :
+	// 	parser: {
+	// 		extractDoc: true,
+	// 		php7: true
+	// 	},
+	// 	ast: {
+	// 		withPositions: true
+	// 	}
+	// });
+
+	// const result = parser.tokenGetAll(content)
+	// console.log(result)
+
+
+	// return
+	/**
+	 * TODO: remove the function with private decoration
+	 * 		 extract parameters -- in progress
+	 * 		 extract PHPDocs if possible
+	 * 		 extract location for jump to defination
+	 */
+	// const funcMatch = /function\s*(?!_)\w*/g
+	// const funcMatch = /function\s*(?!_)\w*\s*\((.*?)\)/
+
+	/*
+	const funcMatch = /function\s*(?!_)(\w*\1)\s*\((.*?\2)\)/g
+	const regexResult = content.match(funcMatch)
+	console.log(regexResult)
+	// const publicFunctions = regexResult?.filter(item => item !== 'function').map(item => item.split(' ')[1])
+	
+	const result = regexResult?.map(item => {
+		return {
+			funcNames: item[1],
+			params: item[2]
+		}
+	})
+	
+	return result;
+	*/
+
+	// const funcNames = regexResult?.map(item => item[1])
+	// const params = regexResult?.map(item => item[2])
+
+	// return {
+	// 	funcNames: funcNames,
+	// 	params: params
+	// }
+}
+
+
+
+
+
+
