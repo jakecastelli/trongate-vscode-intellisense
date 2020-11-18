@@ -129,7 +129,7 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 	try {
 		const targetControllerContent = readFileSync(targetControllerLocation, { encoding: 'utf8' });
 		// console.log(targetControllerContent)
-		const functionResult = extractFunctions(targetControllerContent)
+		const functionResult = extractFunctions(targetControllerContent, GLOBAL_SETTINGS)
 		return functionResult
 
 	} catch (error) {
@@ -137,43 +137,9 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 	}
 }
 
-function extractFunctions(content: string) {
+export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 
-	console.log('hello ??????????????????')
-
-	const engine = require("php-parser");
-
-	var DocParser = require('doc-parser');
-	var reader = new DocParser();
-
-	const parser = new engine({
-		parser: {
-			extractDoc: true,
-			php7: true,
-		},
-		ast: {
-			withPositions: true,
-		},
-	});
-	// const result = parser.tokenGetAll(content).filter((token: Array<any>) => {
-	// 	return (
-
-	// 		// token[0] === "T_STRING"
-	// 		// token[0] === "" 
-
-
-	// 		token[0] !== "T_WHITESPACE" &&
-	// 		token[0] !== "T_COMMENT" &&
-	// 		token[0] !== "T_OPEN_TAG" &&
-	// 		token[0] !== "T_INLINE_HTML"
-	// 	);
-	// })
-	// 	.map((token: Array<any>, index: number) => {
-	// 		if (Array.isArray(token)) {
-	// 			return [...token, index];
-	// 		}
-	// 	})
-	const result = parser.parseCode(content, {
+	const result = GLOBAL_SETTINGS.parser.parseCode(content, {
 		parser: {
 			debug: false,
 			locations: false,
@@ -194,7 +160,6 @@ function extractFunctions(content: string) {
 	const refine = allMethods.map(item => {
 		const identifier = item.name.name
 
-
 		if (identifier.charAt(0) === '_' || item.visibility === 'private') {
 			// private method
 			return []
@@ -207,19 +172,48 @@ function extractFunctions(content: string) {
 			return `[, $${arg.name.name}]`
 		}).join('')
 
-		const rowDocs = item.leadingComments[0].value
-		const docs = reader.parse(rowDocs).summary
 
-		console.log('------>>>>>>>>>>>>')
-		console.log('------>>>>>>>>>>>>')
+		let rowDocs;
+		let docs;
+		let parsedDoc;
+		try {
+			if (item.leadingComments) {
+				rowDocs = item.leadingComments[0].value
+				console.log(GLOBAL_SETTINGS.reader.parse(rowDocs))
+				parsedDoc = GLOBAL_SETTINGS.reader.parse(rowDocs)
+			}
+
+			// docs = ''
+			// docs += item.arguments.map(arg => {
+			// 	if (parsedDoc && parsedDoc.body) {
+			// 		const filterResult = parsedDoc.body.filter(parsedArg => parsedArg.name === arg.name.name)
+			// 		if (filterResult.length > 0) {
+			// 			return `\n@param ${filterResult[0]?.type?.name} $${filterResult[0].name} ${filterResult[0].description}`
+			// 		} else {
+			// 			return `\n@param mix $${arg.name.name}`
+			// 		}
+			// 	} else {
+			// 		return `\n@param mix $${arg.name.name}`
+			// 	}
+			// }).join('')
+
+			docs = GLOBAL_SETTINGS.reader.parse(rowDocs).summary
+
+		} catch (error) {
+			console.log(error)
+		}
+
+		console.log('>>>>>>>>>>>>>>>>>>')
+		console.log('>>>>>>>>>>>>>>>>>>')
 		console.log(docs)
-		console.log('------>>>>>>>>>>>>')
-		console.log('------>>>>>>>>>>>>')
+		console.log('>>>>>>>>>>>>>>>>>>')
+		console.log('>>>>>>>>>>>>>>>>>>')
 
 		return {
 			funcNames: identifier,
-			params: `${identifier}(${parameters})`,
-			docs: docs
+			params: `(${parameters});`,
+			docs: docs,
+			shortDocs: `${identifier}(${parameters})`
 		}
 	})
 
@@ -227,21 +221,6 @@ function extractFunctions(content: string) {
 	console.log(refine)
 	console.log(')))))))))))))))))))))))')
 	return refine
-
-	// const parser = new engine({
-	// 	// some options :
-	// 	parser: {
-	// 		extractDoc: true,
-	// 		php7: true
-	// 	},
-	// 	ast: {
-	// 		withPositions: true
-	// 	}
-	// });
-
-	// const result = parser.tokenGetAll(content)
-	// console.log(result)
-
 
 	// return
 	/**

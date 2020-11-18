@@ -26,12 +26,14 @@ import { URI } from 'vscode-uri';
 
 import * as loader from './control'
 import { model } from './docs'
-import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles, isFalseLine, parseModule } from './utils/index'
+import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles, isFalseLine, parseModule, extractFunctions } from './utils/index'
 
 let GLOBAL_SETTINGS = {
 	allModules: [],
 	isTrongateProject: false,
-	projectLocation: null
+	projectLocation: null,
+	parser: null,
+	reader: null
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -59,11 +61,29 @@ connection.onInitialize((params: InitializeParams) => {
 	console.log(params)
 	console.log('======================================')
 	// let projectPath = params.workspaceFolders[0].uri.fsPath
+
+	const engine = require("php-parser");
+
+	const DocParser = require('doc-parser');
+	const reader = new DocParser();
+
+	const parser = new engine({
+		parser: {
+			extractDoc: true,
+			php7: true,
+		},
+		ast: {
+			withPositions: true,
+		},
+	});
+
 	let projectPath = params.rootPath
 	if (checkIsTrongateProject(projectPath)) {
 		// Update GLOBAL_SETTINGS
 		GLOBAL_SETTINGS.projectLocation = projectPath
 		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(projectPath)]
+		GLOBAL_SETTINGS.parser = parser;
+		GLOBAL_SETTINGS.reader = reader;
 	}
 	loader.loader.root = URI.parse(params.rootUri);
 	console.log(loader.loader.root)
@@ -76,7 +96,7 @@ connection.onInitialize((params: InitializeParams) => {
 			// definitionProvider :true,
 			hoverProvider: true,
 			signatureHelpProvider: {
-				triggerCharacters: ['('],
+				triggerCharacters: ['(', '\''],
 				retriggerCharacters: [',']
 			},
 			completionProvider: {
@@ -260,7 +280,13 @@ connection.onCompletion(
 
 		// ===> Load up functions and properties from another module if user does -> <===
 		const loadUpFunctionMatch = /\$this->\w*->/
-		if (targetLine?.match(loadUpFunctionMatch)) {
+		/**
+		 * The match has to be exactly the same pattern
+		 * otherwise it would cause some issue, so,
+		 * to solve it, we check if there is anything after
+		 * the second ->
+		 */
+		if (targetLine?.match(loadUpFunctionMatch) && targetLine.split('->')[2] === '') {
 			// update the modules first to see if there is any change
 			GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
 			const match = targetLine.match(loadUpFunctionMatch)[0]
@@ -337,8 +363,48 @@ connection.onCompletion(
 );
 
 connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): SignatureHelp => {
+
+	if (!GLOBAL_SETTINGS.projectLocation) return
+	if (GLOBAL_SETTINGS.allModules.length === 0) return
+
+	const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
+	const regexForMatch = /\s*()\$this\->\w*->\w*/
+
+	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+
+	const match = targetLine.match(regexForMatch)[0]
+	if (!match) return null
+
+	const result = parseModule(match, GLOBAL_SETTINGS)
+
+	if (result) {
+		console.log('############')
+		console.log(result)
+
+		const functionName = match.split('->')[2]
+		console.log('############')
+		console.log(functionName)
+		console.log('############')
+		const functionSignature = result.filter(item => item.funcNames === functionName)[0]
+
+		if (functionSignature) {
+			console.log(' it works !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+			console.log(functionSignature)
+			return {
+				signatures: [{ label: functionSignature.params, documentation: functionSignature.docs }],
+				activeSignature: 0,
+				activeParameter: null
+			}
+		}
+	}
+
 	return
-	let temp;
+
+	// Extract called class name
+	// const className = match[0].split('->')[1]
+
+
+	// let temp;
 
 	// Implement logic here
 
@@ -346,29 +412,32 @@ connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): 
 	// console.log(lines)
 	// let targetLine = lines[_textDocumentPosition.position.line]
 	// let targetLine = lines[_textDocumentPosition.position.line]
-	const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
-	const regexForMatch = /\s*()\$this\->\w*->\w*/
-	const match = targetLine.match(regexForMatch)
-	if (!match) return null
-
-	// Extract called class name
-	const className = match[0].split('->')[1]
-	console.log(className)
 
 
-	if (Object.keys(availableList).find(item => item === className)) {
-		// Extract function name
-		const functionName = match[0].split('->')[2]
-		temp = availableList[className].find(item => item.label === functionName)
-	}
-	if (!temp) return null
+	// const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
+	// const regexForMatch = /\s*()\$this\->\w*->\w*/
+	// const match = targetLine.match(regexForMatch)
+	// if (!match) return null
+
+	// // Extract called class name
+	// const className = match[0].split('->')[1]
+	// console.log(className)
 
 
-	return {
-		signatures: [{ label: temp.signature, documentation: temp.doc }],
-		activeSignature: 0,
-		activeParameter: null
-	}
+	// if (Object.keys(availableList).find(item => item === className)) {
+	// 	// Extract function name
+	// 	const functionName = match[0].split('->')[2]
+	// 	temp = availableList[className].find(item => item.label === functionName)
+	// }
+	// if (!temp) return null
+
+
+	// return {
+	// 	signatures: [{ label: temp.signature, documentation: temp.doc }],
+	// 	activeSignature: 0,
+	// 	activeParameter: null
+	// }
+
 
 	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
 	// else return mLoader.signature(
