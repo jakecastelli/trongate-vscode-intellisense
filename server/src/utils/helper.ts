@@ -167,13 +167,14 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 
 		const parameters = item.arguments.map((arg, index) => {
 			if (index === 0) {
-				return `[$${arg.name.name}]`
+				return `[$${arg.name.name}${arg.value ? '=' + arg.value.raw : ''}]`
 			}
-			return `[, $${arg.name.name}]`
+			return `[, $${arg.name.name}${arg.value ? '=' + arg.value.raw : ''}]`
+			// return `[, $${arg.name.name}]`
 		}).join('')
 
 
-		let rowDocs;
+		let rowDocs = '';
 		let docs;
 		let parsedDoc;
 		try {

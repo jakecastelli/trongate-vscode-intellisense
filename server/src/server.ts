@@ -96,7 +96,7 @@ connection.onInitialize((params: InitializeParams) => {
 			// definitionProvider :true,
 			hoverProvider: true,
 			signatureHelpProvider: {
-				triggerCharacters: ['(', '\''],
+				triggerCharacters: ['(', '\'', '"'],
 				retriggerCharacters: [',']
 			},
 			completionProvider: {
