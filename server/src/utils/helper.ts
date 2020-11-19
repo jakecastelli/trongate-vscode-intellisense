@@ -41,6 +41,40 @@ export function checkIsTrongateProject(filePath) {
 	return result;
 }
 
+
+export function hasLoadedModule(doc, pos, uri, verifyingModuleName) {
+	let lookUpLine = pos - 1
+	const loadModuleMatch = /\$this->module\((('\w+'|"\w+"\1))\)/
+
+	while (true) {
+		const oneLineAbove = getTargetLine(doc, lookUpLine, uri)
+		if (isFalseLine(oneLineAbove)) {
+			// comments // or /* or * 
+			lookUpLine -= 1
+			continue
+		}
+		if (isLastLine(oneLineAbove)) {
+			// function xxx () 
+			break;
+		}
+
+		// check the verifying module name matches the current line loaded module name
+		if (oneLineAbove?.match(loadModuleMatch)) {
+			const currentLoadedModuleName = oneLineAbove.match(loadModuleMatch)[1].split('').filter(item => item !== '\'' && '"').join('')
+			if (verifyingModuleName === currentLoadedModuleName) return true
+		}
+
+		// nothing here, one line above again
+		lookUpLine -= 1
+		if (lookUpLine < 0) break; // no line above, so it ended
+	}
+
+	// return false means we could not find any match
+	return false
+}
+
+
+
 export function getViewFiles(doc, pos, projectLocation, uri) {
 	let lookUpLine = pos - 1
 	let viewModuleName = ''
@@ -77,6 +111,11 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 	return viewFileArr
 }
 
+/**
+ * We do not want to check a line if it is a comment  
+ * 
+ * @param line 
+ */
 export function isFalseLine(line: string) {
 	/**
 	 * match // or /* or *
@@ -88,6 +127,11 @@ export function isFalseLine(line: string) {
 	return false
 }
 
+/**
+ * If this line is the function definition it means we have hit the end of this function scope
+ * 
+ * @param line 
+ */
 function isLastLine(line: string) {
 	const findFunctionDecorationMatch = /\s*function\s*\w*\s*\(/
 	if (line.match(findFunctionDecorationMatch)) {

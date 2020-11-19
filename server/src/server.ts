@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { verify } from 'crypto';
 import {
 	createConnection,
 	TextDocuments,
@@ -26,7 +27,7 @@ import { URI } from 'vscode-uri';
 
 import * as loader from './control'
 import { model } from './docs'
-import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles, isFalseLine, parseModule, extractFunctions } from './utils/index'
+import { getTargetLine, getAllTheModuleFolders, checkIsTrongateProject, getViewFiles, isFalseLine, parseModule, extractFunctions, hasLoadedModule } from './utils/index'
 
 let GLOBAL_SETTINGS = {
 	allModules: [],
@@ -238,7 +239,10 @@ connection.onCompletion(
 		 */
 
 
-		// if it is not a Trongate project then don't do anything
+		/**
+		 * if it is not a Trongate project then don't do anything,
+		 * if there is no module within the modules folder then don't do anything
+		 */
 		if (!GLOBAL_SETTINGS.projectLocation) return
 		if (GLOBAL_SETTINGS.allModules.length === 0) return
 
@@ -251,7 +255,6 @@ connection.onCompletion(
 		const loadModuleMatch = /\$this->module\((''|"")\)/
 		const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
 		if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
-			console.log('oh yeah loading modules now!!!')
 			GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
 			return GLOBAL_SETTINGS.allModules.map(item => {
 				return {
@@ -279,14 +282,23 @@ connection.onCompletion(
 		}
 
 		// ===> Load up functions and properties from another module if user does -> <===
-		const loadUpFunctionMatch = /\$this->\w*->/
-		/**
+		const loadUpFunctionMatch = /\$this->\w+->/
+		/** ==> Issue with loadUpFunctionMatch (Fixed) <==
 		 * The match has to be exactly the same pattern
 		 * otherwise it would cause some issue, so,
-		 * to solve it, we check if there is anything after
-		 * the second ->
+		 * to solve it, we check if there is anything after * the second ->
 		 */
+
 		if (targetLine?.match(loadUpFunctionMatch) && targetLine.split('->')[2] === '') {
+
+			/**
+			 * When there is a regex match, we first look up to find $this->module('xxxxx') to see if
+			 * the user has already loaded another module or not
+			 * as $this->module('') is equivlent to require_once
+			 */
+			const verifyingModuleName = targetLine.split('->')[1];
+			if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+
 			// update the modules first to see if there is any change
 			GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
 			const match = targetLine.match(loadUpFunctionMatch)[0]
@@ -310,17 +322,7 @@ connection.onCompletion(
 				})
 			}
 		}
-
-
-
-
-
-
-
-
 		// return [];
-
-
 
 		// console.log('it is working!')
 
