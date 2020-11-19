@@ -17,7 +17,8 @@ export function getTargetLine(documents: TextDocuments<TextDocument>, textDocPos
 
 export function getAllTheModuleFolders(pathStr) {
 	const filePath = pathStr
-	return getDirectories(filePath + '/modules')
+	return getDirectories(path.join(filePath, 'modules'))
+	// return getDirectories(filePath + '/modules')
 }
 
 const getDirectories = source =>
@@ -70,7 +71,8 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 	}
 	if (viewModuleName === '') return;
 
-	const viewFileLocation = `${projectLocation}/modules/${viewModuleName}/views`
+	const viewFileLocation = path.join(projectLocation, 'modules', viewModuleName, 'views')
+	// const viewFileLocation = `${projectLocation}/modules/${viewModuleName}/views`
 	const viewFileArr = getFiles(viewFileLocation)
 	return viewFileArr
 }
@@ -176,6 +178,10 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 
 		let rowDocs = '';
 		let docs;
+		/**
+		 * parsedDoc is unused for now, but later when we bring custom docs and
+		 * other cool stuff, we might need it, so keep it here for now
+		 */
 		let parsedDoc;
 		try {
 			if (item.leadingComments) {
@@ -205,9 +211,7 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 		}
 
 		console.log('>>>>>>>>>>>>>>>>>>')
-		console.log('>>>>>>>>>>>>>>>>>>')
 		console.log(docs)
-		console.log('>>>>>>>>>>>>>>>>>>')
 		console.log('>>>>>>>>>>>>>>>>>>')
 
 		return {
@@ -257,9 +261,3 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 	// 	params: params
 	// }
 }
-
-
-
-
-
-
