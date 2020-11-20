@@ -286,7 +286,7 @@ connection.onCompletion(
 		/** ==> Issue with loadUpFunctionMatch (Fixed) <==
 		 * The match has to be exactly the same pattern
 		 * otherwise it would cause some issue, so,
-		 * to solve it, we check if there is anything after * the second ->
+		 * to solve it, we check if there is anything after the second ->
 		 */
 
 		if (targetLine?.match(loadUpFunctionMatch) && targetLine.split('->')[2] === '') {
@@ -370,7 +370,7 @@ connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): 
 	if (GLOBAL_SETTINGS.allModules.length === 0) return
 
 	const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
-	const regexForMatch = /\s*()\$this\->\w*->\w*/
+	const regexForMatch = /\s*()\$this\->\w+->\w+/
 
 	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
 
