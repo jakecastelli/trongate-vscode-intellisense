@@ -162,10 +162,8 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 	console.log('===>')
 	console.log(moduleName)
 	console.log('<===')
-	if (!GLOBAL_SETTINGS.allModules.includes(moduleName)) {
-		// no match found, terminate the parsing
-		return
-	}
+	if (!GLOBAL_SETTINGS.allModules.includes(moduleName)) return // no match found, terminate the parsing
+	
 	// const targetModuleControllerFileLocation = GLOBAL_SETTINGS.projectLocation
 
 	const targetControllerLocation = path.join(GLOBAL_SETTINGS.projectLocation, 'modules', moduleName, 'controllers', firstUpperModuleName + '.php')
@@ -254,9 +252,9 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 			console.log(error)
 		}
 
-		console.log('>>>>>>>>>>>>>>>>>>')
-		console.log(docs)
-		console.log('>>>>>>>>>>>>>>>>>>')
+		// console.log('>>>>>>>>>>>>>>>>>>')
+		// console.log(docs)
+		// console.log('>>>>>>>>>>>>>>>>>>')
 
 		return {
 			funcNames: identifier,
@@ -266,18 +264,23 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 		}
 	})
 
-	console.log('(((((((((((((((((((((((')
-	console.log(refine)
-	console.log(')))))))))))))))))))))))')
+	// console.log('(((((((((((((((((((((((')
+	// console.log(refine)
+	// console.log(')))))))))))))))))))))))')
+
 	return refine
+
+
+
 
 	// return
 	/**
-	 * TODO: remove the function with private decoration
-	 * 		 extract parameters -- in progress
-	 * 		 extract PHPDocs if possible
+	 * TODO: remove the function with private decoration -- Done
+	 * 		 extract parameters -- Done
+	 * 		 extract PHPDocs if possible -- Done
 	 * 		 extract location for jump to defination
 	 */
+
 	// const funcMatch = /function\s*(?!_)\w*/g
 	// const funcMatch = /function\s*(?!_)\w*\s*\((.*?)\)/
 

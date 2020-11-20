@@ -206,8 +206,6 @@ documents.onDidClose(e => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
 	// validateTextDocument(change.document);
-	// console.log(change)
-	// console.log('heyy are you changing something??')
 });
 
 
@@ -305,9 +303,9 @@ connection.onCompletion(
 			const result = parseModule(match, GLOBAL_SETTINGS)
 
 			if (result) {
-				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-				console.log(result)
-				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				// console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				// console.log(result)
+				// console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 				// return the result if there is any match
 				return result.map(item => {
 					if (item.length === 0) return []
@@ -322,45 +320,6 @@ connection.onCompletion(
 				})
 			}
 		}
-		// return [];
-
-		// console.log('it is working!')
-
-		// if (_textDocumentPosition.textDocument.uri.indexOf(loader.loader.root.toString())<0) return [];
-
-		// let lines = documents.get(_textDocumentPosition).getText().split('\n');
-		// console.log(lines)
-
-		// let targetLine = lines[_textDocumentPosition.position.line]
-
-		// const targetLine = getTargetLine(documents, _textDocumentPosition)
-		// console.log(targetLine)
-
-		// console.log('<------------')
-		// console.log(targetLine.match(/\s*()\$this\->/))
-		// console.log('------------->')
-		// if (targetLine.match(/\s*()\$this\->$/)) {
-		// 	return Object.keys(availableList).map( item => {
-		// 		return {
-		// 			label: item,
-		// 			kind: CompletionItemKind.Module
-		// 		}
-		// 	})
-		// }
-
-		// This one is for model
-		// if (targetLine.match(/\s*()\$this\->model->/)) {
-
-		// 	return model.map( item => {
-		// 		return {
-		// 			label: item.label,
-		// 			kind: CompletionItemKind.Function,
-		// 			data: item.data,
-		// 			documentation: item.doc,
-		// 			detail: item.shortDoc
-		// 		}
-		// 	})
-		// }
 	}
 );
 
@@ -369,120 +328,89 @@ connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): 
 	if (!GLOBAL_SETTINGS.projectLocation) return
 	if (GLOBAL_SETTINGS.allModules.length === 0) return
 
-	const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
-	const regexForMatch = /\s*()\$this\->\w+->\w+/
+	try {
+		const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
+		const regexForMatch = /\s*()\$this\->\w+->\w+/
 
-	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+		if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
 
-	const match = targetLine.match(regexForMatch)[0]
-	if (!match) return null
+		const match = targetLine.match(regexForMatch)[0]
+		if (!match) return null
 
-	const result = parseModule(match, GLOBAL_SETTINGS)
+		const result = parseModule(match, GLOBAL_SETTINGS)
 
-	if (result) {
-		console.log('############')
-		console.log(result)
+		if (result) {
 
-		const functionName = match.split('->')[2]
-		console.log('############')
-		console.log(functionName)
-		console.log('############')
-		const functionSignature = result.filter(item => item.funcNames === functionName)[0]
+			const functionName = match.split('->')[2]
+			// console.log('############')
+			// console.log(functionName)
+			// console.log('############')
+			const functionSignature = result.filter(item => item.funcNames === functionName)[0]
 
-		if (functionSignature) {
-			console.log(' it works !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-			console.log(functionSignature)
-			return {
-				signatures: [{ label: functionSignature.params, documentation: functionSignature.docs }],
-				activeSignature: 0,
-				activeParameter: null
+			if (functionSignature) {
+				return {
+					signatures: [{ label: functionSignature.params, documentation: functionSignature.docs }],
+					activeSignature: 0,
+					activeParameter: null
+				}
 			}
 		}
+
+		return
+	} catch (error) {
+		console.log(error)
 	}
-
-	return
-
-	// Extract called class name
-	// const className = match[0].split('->')[1]
-
-
-	// let temp;
-
-	// Implement logic here
-
-	// let lines = documents.get(_textDocumentPosition.textDocument.uri).getText().split('\n');
-	// console.log(lines)
-	// let targetLine = lines[_textDocumentPosition.position.line]
-	// let targetLine = lines[_textDocumentPosition.position.line]
-
-
-	// const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
-	// const regexForMatch = /\s*()\$this\->\w*->\w*/
-	// const match = targetLine.match(regexForMatch)
-	// if (!match) return null
-
-	// // Extract called class name
-	// const className = match[0].split('->')[1]
-	// console.log(className)
-
-
-	// if (Object.keys(availableList).find(item => item === className)) {
-	// 	// Extract function name
-	// 	const functionName = match[0].split('->')[2]
-	// 	temp = availableList[className].find(item => item.label === functionName)
-	// }
-	// if (!temp) return null
-
-
-	// return {
-	// 	signatures: [{ label: temp.signature, documentation: temp.doc }],
-	// 	activeSignature: 0,
-	// 	activeParameter: null
-	// }
-
-
-	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
-	// else return mLoader.signature(
-	// 	position,
-	// 	documents.get(position.textDocument.uri).getText());
 });
 
 connection.onHover((_textDocumentPosition: TextDocumentPositionParams): Hover => {
-	return
 
-	// If the user hover over the function, then we show them the signature and docs
-	let temp;
+	// console.log('=====================================')
+	// console.log(_textDocumentPosition)
+	// console.log('=====================================')
 
-	// Implement logic here
+	try {
+		if (!GLOBAL_SETTINGS.projectLocation) return
+		if (GLOBAL_SETTINGS.allModules.length === 0) return
 
-	let lines = documents.get(_textDocumentPosition.textDocument.uri).getText().split('\n');
-	console.log(lines)
-	let targetLine = lines[_textDocumentPosition.position.line]
-	const regexForMatch = /\s*()\$this\->\w*->\w*/
-	const match = targetLine.match(regexForMatch)
-	if (!match) return null
+		const targetLineNumber = _textDocumentPosition.position.line
+		const documentURI = _textDocumentPosition.textDocument.uri
+		const targetChar = _textDocumentPosition.position.character
+		const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+		const regexMatch = /\$this\->\w+->\w+/
+		const match = targetLine.match(regexMatch)
+		if (!match) return
 
-	// Extract called class name
-	const className = match[0].split('->')[1]
-	console.log(className)
+		const verifyingModuleName = targetLine?.split('->')[1]
+		// if it can match the pattern, let's check if the module has been loaded before
+		if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+		// const loadedUpModule = match[0]
 
+		// update the modules first to see if there is any change
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
 
-	if (Object.keys(availableList).find(item => item === className)) {
-		// Extract function name
-		const functionName = match[0].split('->')[2]
-		temp = availableList[className].find(item => item.label === functionName)
+		const allFunctions = parseModule(targetLine, GLOBAL_SETTINGS)
+		const callingFuncMatch = /\$this\->\w+->(\w+\1)/
+		const onHovering = targetLine?.match(callingFuncMatch)[1] // get the function name eg: $this->store_items->index(), this will get index
+
+		const findPositionMatch = /->\w*\(/
+		const startPos = targetLine?.match(findPositionMatch).index + 2
+		const endPos = startPos + onHovering?.length
+
+		if (targetChar >= startPos && targetChar <= endPos) {
+			const onHoverResult = allFunctions.filter(item => item.funcNames === onHovering)
+
+			if (onHoverResult.length > 0) {
+				return {
+					contents: {
+						language: 'markdown',
+						value: `${onHoverResult[0].shortDocs}\n\n${onHoverResult[0].docs}`
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.log(error)
 	}
-	if (!temp) return null
-
-	return {
-		contents: {
-			language: 'markdown',
-			value: `${temp.signature}\n\n${temp.doc}
-		`
-		},
-	}
-
-	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
 })
 
 // This handler resolves additional information for the item selected in
