@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as path from 'path'
 import { readdirSync, readFileSync } from 'fs';
-import { TextDocumentPositionParams, TextDocuments } from 'vscode-languageserver'
+import { TextDocumentPositionParams, TextDocuments, CompletionItemKind } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export function getTargetLine(documents: TextDocuments<TextDocument>, textDocPos: number, uri) {
@@ -278,4 +278,260 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 	})
 
 	return refine
+}
+
+/**
+ * onCompelete Function Implementation
+ * 
+ * @param _textDocumentPosition 
+ * @param GLOBAL_SETTINGS 
+ */
+export const autoCompele = (GLOBAL_SETTINGS) => {
+	// ===> Load up module names from the modules folder <===
+	const documents = GLOBAL_SETTINGS['documents']
+	const _textDocumentPosition = GLOBAL_SETTINGS['_textDocumentPosition']
+	const targetLineNumber = _textDocumentPosition.position.line
+	const documentURI = _textDocumentPosition.textDocument.uri
+	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+
+	const loadModuleMatch = /\$this->module\((''|"")\)/
+	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
+	if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+		return GLOBAL_SETTINGS.allModules.map(item => {
+			return {
+				label: item,
+				kind: CompletionItemKind.Module
+			}
+		})
+	}
+
+	// ===> Load up view files <===
+	const viewFileMatch = /\$data\[('view_file'|"view_file")\]\s*=\s*(''|"")/
+	// const viewFileMatch = /(\$data\[('view_file'|"view_file")\]\s*=\s*(''|""))|\$this->view\((''|"")\)/
+
+	if (targetLine?.match(viewFileMatch)) {
+		// look up line by line til end or find the module name
+		const viewFiles = getViewFiles(documents, targetLineNumber, GLOBAL_SETTINGS.projectLocation, documentURI)
+		if (viewFiles) {
+			return viewFiles.map(item => {
+				return {
+					label: item,
+					kind: CompletionItemKind.File
+				}
+			})
+		}
+	}
+
+	// ===> Load up functions and properties from another module if user does -> <===
+	const loadUpFunctionMatch = /\$this->\w+->/
+	/** ==> Issue with loadUpFunctionMatch (Fixed) <==
+	 * The match has to be exactly the same pattern
+	 * otherwise it would cause some issue, so,
+	 * to solve it, we check if there is anything after the second ->
+	 */
+
+	if (targetLine?.match(loadUpFunctionMatch) && targetLine.split('->')[2] === '') {
+
+		/**
+		 * When there is a regex match, we first look up to find $this->module('xxxxx') to see if
+		 * the user has already loaded another module or not
+		 * as $this->module('') is equivlent to require_once
+		 */
+		const verifyingModuleName = targetLine.split('->')[1];
+		if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+
+		// update the modules first to see if there is any change
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+		const match = targetLine.match(loadUpFunctionMatch)[0]
+		const result = parseModule(match, GLOBAL_SETTINGS)
+
+		if (result) {
+			console.log('--------result-------')
+			console.log(result)
+			console.log('--------result-------')
+			// return the result if there is any match
+			return result.map(item => {
+				if (item.length === 0) return []
+
+				return {
+					label: item.funcNames,
+					kind: CompletionItemKind.Function,
+					documentation: item.docs,
+					// detail: item.shortDoc,
+					detail: item.params
+				}
+			})
+		}
+	}
+}
+
+/**
+ * onSignature Function Implementation
+ * 
+ * @param _textDocumentPosition 
+ * @param GLOBAL_SETTINGS 
+ */
+export const functionSignature = (GLOBAL_SETTINGS) => {
+	const documents = GLOBAL_SETTINGS['documents']
+	const _textDocumentPosition = GLOBAL_SETTINGS['_textDocumentPosition']
+	const targetLineNumber = _textDocumentPosition.position.line
+	const documentURI = _textDocumentPosition.textDocument.uri
+	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+	// const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
+	const regexForMatch = /\s*()\$this\->\w+->\w+/
+
+	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+
+	const verifyingModuleName = targetLine?.split('->')[1]
+	// if it can match the pattern, let's check if the module has been loaded before
+	if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+
+	const match = targetLine.match(regexForMatch)[0]
+	if (!match) return null
+
+	const result = parseModule(match, GLOBAL_SETTINGS)
+
+	if (result) {
+
+		const functionName = match.split('->')[2]
+		// console.log('############')
+		// console.log(functionName)
+		// console.log('############')
+		const functionSignature = result.filter(item => item.funcNames === functionName)[0]
+
+		if (functionSignature) {
+			return {
+				signatures: [{ label: functionSignature.params, documentation: functionSignature.docs }],
+				activeSignature: 0,
+				activeParameter: null
+			}
+		}
+	}
+
+	return
+}
+
+export const functionHover = (GLOBAL_SETTINGS) => {
+	const _textDocumentPosition = GLOBAL_SETTINGS['_textDocumentPosition']
+	const documents = GLOBAL_SETTINGS['documents']
+	const targetLineNumber = _textDocumentPosition.position.line;
+	const documentURI = _textDocumentPosition.textDocument.uri;
+	const targetChar = _textDocumentPosition.position.character;
+	const targetLine = getTargetLine(
+	  documents,
+	  targetLineNumber,
+	  documentURI
+	);
+	const regexMatch = /\$this\->\w+->\w+/;
+	const match = targetLine.match(regexMatch);
+	if (!match) return;
+
+	const verifyingModuleName = targetLine?.split("->")[1];
+	// if it can match the pattern, let's check if the module has been loaded before
+	if (
+	  !hasLoadedModule(
+		documents,
+		targetLineNumber,
+		documentURI,
+		verifyingModuleName
+	  )
+	)
+	  return;
+	// const loadedUpModule = match[0]
+
+	// update the modules first to see if there is any change
+	GLOBAL_SETTINGS.allModules = [
+	  ...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation),
+	];
+
+	const allFunctions = parseModule(targetLine, GLOBAL_SETTINGS);
+	const callingFuncMatch = /\$this\->\w+->(\w+\1)/;
+	const onHovering = targetLine?.match(callingFuncMatch)[1]; // get the function name eg: $this->store_items->index(), this will get index
+
+	const findPositionMatch = /->\w*\(/;
+	const startPos = targetLine?.match(findPositionMatch).index + 2;
+	const endPos = startPos + onHovering?.length;
+
+	if (targetChar >= startPos && targetChar <= endPos) {
+	  const onHoverResult = allFunctions.filter(
+		(item) => item.funcNames === onHovering
+	  );
+
+	  if (onHoverResult.length > 0) {
+		return {
+		  contents: {
+			language: "markdown",
+			value: `${onHoverResult[0].shortDocs}\n\n${onHoverResult[0].docs}`,
+		  },
+		};
+	  }
+	}
+}
+
+export const functionOnDefinition = (GLOBAL_SETTINGS) => {
+	const documents = GLOBAL_SETTINGS['documents']
+	const _textDocumentPosition = GLOBAL_SETTINGS['_textDocumentPosition']
+	const targetLineNumber = _textDocumentPosition.position.line;
+      const documentURI = _textDocumentPosition.textDocument.uri;
+      const targetChar = _textDocumentPosition.position.character;
+      const targetLine = getTargetLine(
+        documents,
+        targetLineNumber,
+        documentURI
+      );
+      const regexMatch = /\$this\->\w+->\w+/;
+      const match = targetLine.match(regexMatch);
+      if (!match) return;
+
+      const verifyingModuleName = targetLine?.split("->")[1];
+      // if it can match the pattern, let's check if the module has been loaded before
+      if (
+        !hasLoadedModule(
+          documents,
+          targetLineNumber,
+          documentURI,
+          verifyingModuleName
+        )
+      )
+        return;
+      // const loadedUpModule = match[0]
+
+      // update the modules first to see if there is any change
+      GLOBAL_SETTINGS.allModules = [
+        ...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation),
+      ];
+
+      const allFunctions = parseModule(targetLine, GLOBAL_SETTINGS);
+      // const documentPosition = URI.parse(allFunctions.document_uri)
+      const documentPosition = encodeURI(allFunctions.document_uri);
+
+      console.log("===================");
+      console.log(documentPosition);
+      console.log("===================");
+
+      const callingFuncMatch = /\$this\->\w+->(\w+\1)/;
+      const onHovering = targetLine?.match(callingFuncMatch)[1]; // get the function name eg: $this->store_items->index(), this will get index
+
+      const findPositionMatch = /->\w*\(/;
+      const startPos = targetLine?.match(findPositionMatch).index + 2;
+      const endPos = startPos + onHovering?.length;
+
+      if (targetChar >= startPos && targetChar <= endPos) {
+        const onHoverResult = allFunctions.filter(
+          (item) => item.funcNames === onHovering
+        );
+
+        if (onHoverResult.length > 0) {
+          console.log("triggering the onDefinition");
+          console.log(onHoverResult);
+          console.log("triggering the onDefinition");
+
+          return {
+            uri: documentPosition,
+            range: onHoverResult[0].range,
+          };
+        }
+      }
 }
