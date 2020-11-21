@@ -94,7 +94,7 @@ connection.onInitialize((params: InitializeParams) => {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: TextDocumentSyncKind.Full,
 			// documentSymbolProvider:true,
-			// definitionProvider :true,
+			definitionProvider :true,
 			hoverProvider: true,
 			signatureHelpProvider: {
 				triggerCharacters: ['(', '\'', '"'],
@@ -412,6 +412,17 @@ connection.onHover((_textDocumentPosition: TextDocumentPositionParams): Hover =>
 		console.log(error)
 	}
 })
+
+/**
+ * Jump to defination
+ */
+connection.onDefinition((_textDocumentPosition:TextDocumentPositionParams):Location=>{
+
+	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
+	// else return mLoader.definition(
+	// 	position,
+	// 	documents.get(position.textDocument.uri).getText());
+});
 
 // This handler resolves additional information for the item selected in
 // the completion list.
