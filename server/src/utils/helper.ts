@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as path from 'path'
 import { readdirSync, readFileSync } from 'fs';
-import { TextDocumentPositionParams, TextDocuments } from 'vscode-languageserver'
+import { TextDocumentPositionParams, TextDocuments, CompletionItemKind } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export function getTargetLine(documents: TextDocuments<TextDocument>, textDocPos: number, uri) {
@@ -278,4 +278,84 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 	})
 
 	return refine
+}
+
+export const autoCompele = (_textDocumentPosition, GLOBAL_SETTINGS) => {
+	// ===> Load up module names from the modules folder <===
+	const documents = GLOBAL_SETTINGS['documents']
+	const targetLineNumber = _textDocumentPosition.position.line
+	const documentURI = _textDocumentPosition.textDocument.uri
+	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+
+	const loadModuleMatch = /\$this->module\((''|"")\)/
+	const loadViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*(''|"")/
+	if (targetLine.match(loadModuleMatch) || targetLine?.match(loadViewModuleMatch)) {
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+		return GLOBAL_SETTINGS.allModules.map(item => {
+			return {
+				label: item,
+				kind: CompletionItemKind.Module
+			}
+		})
+	}
+
+	// ===> Load up view files <===
+	const viewFileMatch = /\$data\[('view_file'|"view_file")\]\s*=\s*(''|"")/
+	// const viewFileMatch = /(\$data\[('view_file'|"view_file")\]\s*=\s*(''|""))|\$this->view\((''|"")\)/
+
+	if (targetLine?.match(viewFileMatch)) {
+		// look up line by line til end or find the module name
+		const viewFiles = getViewFiles(documents, targetLineNumber, GLOBAL_SETTINGS.projectLocation, documentURI)
+		if (viewFiles) {
+			return viewFiles.map(item => {
+				return {
+					label: item,
+					kind: CompletionItemKind.File
+				}
+			})
+		}
+	}
+
+	// ===> Load up functions and properties from another module if user does -> <===
+	const loadUpFunctionMatch = /\$this->\w+->/
+	/** ==> Issue with loadUpFunctionMatch (Fixed) <==
+	 * The match has to be exactly the same pattern
+	 * otherwise it would cause some issue, so,
+	 * to solve it, we check if there is anything after the second ->
+	 */
+
+	if (targetLine?.match(loadUpFunctionMatch) && targetLine.split('->')[2] === '') {
+
+		/**
+		 * When there is a regex match, we first look up to find $this->module('xxxxx') to see if
+		 * the user has already loaded another module or not
+		 * as $this->module('') is equivlent to require_once
+		 */
+		const verifyingModuleName = targetLine.split('->')[1];
+		if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+
+		// update the modules first to see if there is any change
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+		const match = targetLine.match(loadUpFunctionMatch)[0]
+		const result = parseModule(match, GLOBAL_SETTINGS)
+
+		if (result) {
+			console.log('--------result-------')
+			console.log(result)
+			console.log('--------result-------')
+			// return the result if there is any match
+			return result.map(item => {
+				if (item.length === 0) return []
+
+				return {
+					label: item.funcNames,
+					kind: CompletionItemKind.Function,
+					documentation: item.docs,
+					// detail: item.shortDoc,
+					detail: item.params
+				}
+			})
+		}
+	}
 }
