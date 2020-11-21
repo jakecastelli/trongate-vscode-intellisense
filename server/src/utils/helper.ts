@@ -111,41 +111,42 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 }
 
 /**
- * We do not want to check a line if it is a comment  
  * 
- * @param line 
+ * @param regexMatch 
  */
-export function isFalseLine(line: string) {
-	/**
-	 * match // or /* or *
-	 */
-	const findCommentsMatch = /^\s*(\/\/|\/\*|\*)/
-	if (line.match(findCommentsMatch)) {
-		return true
-	}
+const regexMatchConstruct = regexMatch => line => {
+	const regexPattern = regexMatch
+	if (line.match(regexPattern)) return true
+
 	return false
 }
 
 /**
- * If this line is the function definition it means we have hit the end of this function scope
+ * We do not want to check a line if it is a comment  
  * 
+ * match // or /* or *
+ * regex pattern: /^\s*(\/\/|\/\*|\*)/ 
+ * 	
  * @param line 
  */
-function isLastLine(line: string) {
-	const findFunctionDecorationMatch = /\s*function\s*\w*\s*\(/
-	if (line.match(findFunctionDecorationMatch)) {
-		return true
-	}
-	return false
-}
+export const isFalseLine = regexMatchConstruct(/^\s*(\/\/|\/\*|\*)/)
 
-function findViewModule(line: string) {
-	const findViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*('\w*'|"\w*")/
-	if (line.match(findViewModuleMatch)) {
-		return true
-	}
-	return false
-}
+
+/**
+ * If this line is the function definition it means we have hit the end of this function scope
+ * 
+ * regex pattern: /\s*function\s*\w+\s*\(/
+ * 
+ * @param line
+ */
+export const isLastLine = regexMatchConstruct(/\s*function\s*\w+\s*\(/)
+
+/**
+ * regex pattern: /\$data\[('view_module'|"view_module")\]\s*=\s*('\w+'|"\w+")/
+ * 
+ * @param line
+ */
+export const findViewModule = regexMatchConstruct(/\$data\[('view_module'|"view_module")\]\s*=\s*('\w+'|"\w+")/)
 
 function getModuleName(line: string) {
 	const findViewModuleMatch = /\$data\[('view_module'|"view_module")\]\s*=\s*('\w*'|"\w*")/
@@ -158,17 +159,15 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 
 	const moduleName = line.split('->')[1];
 	const firstUpperModuleName = moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
-	console.log('===>')
-	console.log(moduleName)
-	console.log('<===')
 	if (!GLOBAL_SETTINGS.allModules.includes(moduleName)) return // no match found, terminate the parsing
 	
 	// const targetModuleControllerFileLocation = GLOBAL_SETTINGS.projectLocation
 
 	const targetControllerLocation = path.join(GLOBAL_SETTINGS.projectLocation, 'modules', moduleName, 'controllers', firstUpperModuleName + '.php')
-	console.log(targetControllerLocation)
 
-	// Read file
+	// console.log(targetControllerLocation)
+
+	// Read file & Extract functions and more
 	try {
 		const targetControllerContent = readFileSync(targetControllerLocation, { encoding: 'utf8' });
 		// console.log(targetControllerContent)
@@ -205,7 +204,7 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 		const identifier = item.name.name
 
 		if (identifier.charAt(0) === '_' || item.visibility === 'private') {
-			// private method
+			// if it is a private method, we do not want to expose
 			return []
 		}
 
@@ -216,7 +215,6 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 			return `[, $${arg.name.name}${arg.value ? '=' + arg.value.raw : ''}]`
 			// return `[, $${arg.name.name}]`
 		}).join('')
-
 
 		let rowDocs = '';
 		let docs;
@@ -271,39 +269,4 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 	})
 
 	return refine
-
-	// return
-	/**
-	 * TODO: remove the function with private decoration -- Done
-	 * 		 extract parameters -- Done
-	 * 		 extract PHPDocs if possible -- Done
-	 * 		 extract location for jump to defination
-	 */
-
-	// const funcMatch = /function\s*(?!_)\w*/g
-	// const funcMatch = /function\s*(?!_)\w*\s*\((.*?)\)/
-
-	/*
-	const funcMatch = /function\s*(?!_)(\w*\1)\s*\((.*?\2)\)/g
-	const regexResult = content.match(funcMatch)
-	console.log(regexResult)
-	// const publicFunctions = regexResult?.filter(item => item !== 'function').map(item => item.split(' ')[1])
-	
-	const result = regexResult?.map(item => {
-		return {
-			funcNames: item[1],
-			params: item[2]
-		}
-	})
-	
-	return result;
-	*/
-
-	// const funcNames = regexResult?.map(item => item[1])
-	// const params = regexResult?.map(item => item[2])
-
-	// return {
-	// 	funcNames: funcNames,
-	// 	params: params
-	// }
 }

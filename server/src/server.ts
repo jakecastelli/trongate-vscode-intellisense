@@ -304,9 +304,9 @@ connection.onCompletion(
 			const result = parseModule(match, GLOBAL_SETTINGS)
 
 			if (result) {
-				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				console.log('--------result-------')
 				console.log(result)
-				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				console.log('--------result-------')
 				// return the result if there is any match
 				return result.map(item => {
 					if (item.length === 0) return []
@@ -330,10 +330,17 @@ connection.onSignatureHelp((_textDocumentPosition: TextDocumentPositionParams): 
 	if (GLOBAL_SETTINGS.allModules.length === 0) return
 
 	try {
-		const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
+		const targetLineNumber = _textDocumentPosition.position.line
+		const documentURI = _textDocumentPosition.textDocument.uri
+		const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+		// const targetLine = getTargetLine(documents, _textDocumentPosition.position.line, _textDocumentPosition.textDocument.uri)
 		const regexForMatch = /\s*()\$this\->\w+->\w+/
 
 		if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
+
+		const verifyingModuleName = targetLine?.split('->')[1]
+		// if it can match the pattern, let's check if the module has been loaded before
+		if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
 
 		const match = targetLine.match(regexForMatch)[0]
 		if (!match) return null
