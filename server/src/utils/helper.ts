@@ -15,16 +15,19 @@ export function getTargetLine(documents: TextDocuments<TextDocument>, textDocPos
 	}
 }
 
+
 export function getAllTheModuleFolders(pathStr) {
 	const filePath = pathStr
 	return getDirectories(path.join(filePath, 'modules'))
 	// return getDirectories(filePath + '/modules')
 }
 
+
 const getDirectories = source =>
 	readdirSync(source, { withFileTypes: true })
 		.filter(dirent => dirent.isDirectory())
 		.map(dirent => dirent.name)
+
 
 const getFiles = source =>
 	readdirSync(source, { withFileTypes: true })
@@ -33,6 +36,7 @@ const getFiles = source =>
 			const viewFileName = file.name.split('.')[0]
 			return viewFileName
 		})
+
 
 export function checkIsTrongateProject(filePath) {
 	const allModules = getDirectories(filePath)
@@ -110,7 +114,9 @@ export function getViewFiles(doc, pos, projectLocation, uri) {
 	return viewFileArr
 }
 
+
 /**
+ * the function constructor for the regexMatch check
  * 
  * @param regexMatch 
  */
@@ -120,6 +126,7 @@ const regexMatchConstruct = regexMatch => line => {
 
 	return false
 }
+
 
 /**
  * We do not want to check a line if it is a comment  
@@ -155,6 +162,7 @@ function getModuleName(line: string) {
 	return result
 }
 
+
 export function parseModule(line: string, GLOBAL_SETTINGS) {
 
 	const moduleName = line.split('->')[1];
@@ -179,6 +187,7 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 		console.log(error)
 	}
 }
+
 
 export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 
@@ -226,7 +235,7 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 		try {
 			if (item.leadingComments) {
 				rowDocs = item.leadingComments[0].value
-				console.log(GLOBAL_SETTINGS.reader.parse(rowDocs))
+				// console.log(GLOBAL_SETTINGS.reader.parse(rowDocs))
 				parsedDoc = GLOBAL_SETTINGS.reader.parse(rowDocs)
 			}
 
