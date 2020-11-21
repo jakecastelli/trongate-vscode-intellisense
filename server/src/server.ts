@@ -24,8 +24,6 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI } from "vscode-uri";
 
-import * as loader from "./control";
-import { model } from "./docs";
 import {
   getTargetLine,
   getAllTheModuleFolders,
@@ -55,9 +53,6 @@ let connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
-const availableList = {
-  model: model,
-};
 
 // Document listen ---------
 
@@ -98,8 +93,6 @@ connection.onInitialize((params: InitializeParams) => {
     GLOBAL_SETTINGS.parser = parser;
     GLOBAL_SETTINGS.reader = reader;
   }
-  loader.loader.root = URI.parse(params.rootUri);
-  console.log(loader.loader.root);
   //Seems here is the magic starting to happen...
   return {
     capabilities: {
