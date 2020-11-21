@@ -74,7 +74,6 @@ export function hasLoadedModule(doc, pos, uri, verifyingModuleName) {
 }
 
 
-
 export function getViewFiles(doc, pos, projectLocation, uri) {
 	let lookUpLine = pos - 1
 	let viewModuleName = ''
@@ -174,6 +173,7 @@ export function parseModule(line: string, GLOBAL_SETTINGS) {
 		const targetControllerContent = readFileSync(targetControllerLocation, { encoding: 'utf8' });
 		// console.log(targetControllerContent)
 		const functionResult = extractFunctions(targetControllerContent, GLOBAL_SETTINGS)
+		functionResult['document_uri'] = targetControllerLocation
 		return functionResult
 
 	} catch (error) {
@@ -252,26 +252,25 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 			console.log(error)
 		}
 
-		// console.log('>>>>>>>>>>>>>>>>>>')
-		// console.log(docs)
-		// console.log('>>>>>>>>>>>>>>>>>>')
-
 		return {
 			funcNames: identifier,
 			params: `(${parameters});`,
 			docs: docs,
-			shortDocs: `${identifier}(${parameters})`
+			shortDocs: `${identifier}(${parameters})`,
+			range: {
+				start: {
+					line: item.loc.start.line,
+					character: item.loc.start.column
+				},
+				end: {
+					line: item.loc.end.line,
+					character: item.loc.end.column
+				}
+			}
 		}
 	})
 
-	// console.log('(((((((((((((((((((((((')
-	// console.log(refine)
-	// console.log(')))))))))))))))))))))))')
-
 	return refine
-
-
-
 
 	// return
 	/**

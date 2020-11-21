@@ -17,7 +17,8 @@ import {
 	SymbolInformation,
 	SignatureHelp,
 	signatureHelpProvider,
-	Hover
+	Hover,
+	Position
 } from 'vscode-languageserver';
 
 import {
@@ -303,9 +304,9 @@ connection.onCompletion(
 			const result = parseModule(match, GLOBAL_SETTINGS)
 
 			if (result) {
-				// console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-				// console.log(result)
-				// console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+				console.log(result)
+				console.log('oh yeah!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 				// return the result if there is any match
 				return result.map(item => {
 					if (item.length === 0) return []
@@ -418,10 +419,58 @@ connection.onHover((_textDocumentPosition: TextDocumentPositionParams): Hover =>
  */
 connection.onDefinition((_textDocumentPosition:TextDocumentPositionParams):Location=>{
 
-	// if (position.textDocument.uri.indexOf(loader.loader.root.toString())<0) return null;
-	// else return mLoader.definition(
-	// 	position,
-	// 	documents.get(position.textDocument.uri).getText());
+	try {
+		if (!GLOBAL_SETTINGS.projectLocation) return
+		if (GLOBAL_SETTINGS.allModules.length === 0) return
+	
+		const targetLineNumber = _textDocumentPosition.position.line
+		const documentURI = _textDocumentPosition.textDocument.uri
+		const targetChar = _textDocumentPosition.position.character
+		const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+		const regexMatch = /\$this\->\w+->\w+/
+		const match = targetLine.match(regexMatch)
+		if (!match) return
+
+		const verifyingModuleName = targetLine?.split('->')[1]
+		// if it can match the pattern, let's check if the module has been loaded before
+		if (!hasLoadedModule(documents, targetLineNumber, documentURI, verifyingModuleName)) return
+		// const loadedUpModule = match[0]
+
+		// update the modules first to see if there is any change
+		GLOBAL_SETTINGS.allModules = [...getAllTheModuleFolders(GLOBAL_SETTINGS.projectLocation)]
+
+		const allFunctions = parseModule(targetLine, GLOBAL_SETTINGS)
+		// const documentPosition = URI.parse(allFunctions.document_uri)
+		const documentPosition = encodeURI(allFunctions.document_uri)
+
+		console.log('===================')
+		console.log(documentPosition)
+		console.log('===================')
+
+		const callingFuncMatch = /\$this\->\w+->(\w+\1)/
+		const onHovering = targetLine?.match(callingFuncMatch)[1] // get the function name eg: $this->store_items->index(), this will get index
+
+		const findPositionMatch = /->\w*\(/
+		const startPos = targetLine?.match(findPositionMatch).index + 2
+		const endPos = startPos + onHovering?.length
+
+		if (targetChar >= startPos && targetChar <= endPos) {
+			const onHoverResult = allFunctions.filter(item => item.funcNames === onHovering)
+
+			if (onHoverResult.length > 0) {
+				console.log('triggering the onDefinition')
+				console.log(onHoverResult);
+				console.log('triggering the onDefinition')
+
+				return {
+					uri: documentPosition,
+					range: onHoverResult[0].range
+				}
+			}
+		}
+	} catch (error) {
+		console.log(error)	
+	}
 });
 
 // This handler resolves additional information for the item selected in
