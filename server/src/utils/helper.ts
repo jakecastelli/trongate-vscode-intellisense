@@ -293,6 +293,7 @@ export const autoCompele = (GLOBAL_SETTINGS) => {
 	const targetLineNumber = _textDocumentPosition.position.line
 	const documentURI = _textDocumentPosition.textDocument.uri
 	const targetLine = getTargetLine(documents, targetLineNumber, documentURI)
+
 	if (isFalseLine(targetLine)) return 	// We do not active intellisense on a comment line
 
 	const loadModuleMatch = /\$this->module\((''|"")\)/
@@ -364,6 +365,23 @@ export const autoCompele = (GLOBAL_SETTINGS) => {
 				}
 			})
 		}
+	}
+
+	/**
+	 * load up all the template functions
+	 * $this->template('') or $this->template("") then load up all the public functions with the templates/controllers/Templates.php
+	 */
+	const templateFunctionMatch = /\$this->template\((''|"")\)/
+	if (targetLine?.match(templateFunctionMatch)) {
+		const templateFunctionControllerPath = path.join(GLOBAL_SETTINGS.projectLocation,'templates', 'controllers', 'Templates.php')
+		const templatesContent = readFileSync(templateFunctionControllerPath, { encoding: 'utf8' });
+		const templateFuncs = extractFunctions(templatesContent, GLOBAL_SETTINGS)
+		return templateFuncs.map(item => {
+			return {
+				label: item.funcNames,
+				kind: CompletionItemKind.Function
+			}
+		})
 	}
 }
 
