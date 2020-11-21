@@ -227,7 +227,7 @@ connection.onCompletion(
 		/** ROAD MAP
 		 * 
 		 *  ' or " or > to trigger auto complete 
-		 * 	1.  $this->module(')      =>    show all the modules with module's folder (not considering super module at the moment)
+		 * 	1.  $this->module('')     =>    show all the modules with module's folder (not considering super module at the moment)
 		 *									but we would like to include it in the future 
 			1&.						  =>	show view files if possible..
 		 * 	2.  $this->xxxx-> 		  =>	show all the puclic functions within this module
