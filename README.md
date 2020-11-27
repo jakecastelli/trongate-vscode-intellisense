@@ -1,5 +1,5 @@
 # Trongate VSCode Intellisense
-> This is a Trongate Framework specific Intellisense, it does not contain PHP intellisense, we recommand you to use `PHP Intelephense` for better experience.
+> This is a Trongate Framework specific Intellisense, it does not contain the general PHP intellisense, we recommand you to use `PHP Intelephense` for better experience.
 
 <hr>
 
@@ -37,7 +37,7 @@
 
 <hr>
 
-## Running the Intellisense and see the ins and outs (Devlopers)
+## Running the Intellisense and see the ins and outs (For Devlopers)
 
 - Run `npm install` in this folder. This installs all necessary npm modules in both the client and server folder
 - Open VS Code on this folder.
