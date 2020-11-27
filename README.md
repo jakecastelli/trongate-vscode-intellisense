@@ -5,7 +5,7 @@
 
 ## Quick Start:
 
-* Make sure you have opened Trongate project in your workspace
+* Make sure you have opened your Trongate project in the vscode workspace, the extension will be looking for `config`, `engine`, `modules`, `public` , `templates` folders as they are the essential building block of Trongate Framework.
 
 * The current intellisense supports **Autocomplete**, **Function Signature**, **Hover Over**, **Jump to Definition**
 
