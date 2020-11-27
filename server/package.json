@@ -1,9 +1,8 @@
 {
-	"name": "lsp-sample-server",
+	"name": "trongate-intellisense",
 	"description": "Example implementation of a language server in node.",
-	"version": "1.0.0",
-	"author": "Microsoft Corporation",
-	"license": "MIT",
+	"version": "0.0.1",
+	"author": "jc-sf",
 	"engines": {
 		"node": "*"
 	},
