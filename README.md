@@ -20,25 +20,39 @@ For example: when you type `$data['view_module'] = `, right after you type a sin
 * Pop up all the modules, within your modules folder:
   * `$data['view_module'] = '';` 
   
+  ![View Module][view_module]
+  
 * Pop up all the view files which are within the `view_module` *(you need to do* `$data['view_module'] = 'something';` *to let the IntelliSense know which module's view file you are after)*:
   * `$data['view_file'] = '';`
 
+  ![View File][view_file]
+
 * When you try to load up a module:
   * `$this->module('');` 
+
+  ![Show modules][this_module]
   
 * When you try to load all the public functions within the module you just loaded, for example: `$this->module('something');`:
   * `$this->something->`
 
+
 * Show all the public functions from the `templates/controllers/Templates.php`:
   * `$this->template('');` 
+
+  ![Template][template]
 
 * Show function signature:
   * `$this->your_loaded_module->this_is_an_exmaple_function();`
 
+  ![Function Signature][function_signature]
+
 * Hover for detail
+
+  ![Hover][hover]
   
 * Jump to definition
 
+  ![Jump to definition][jump_to_def]
 
 <hr>
 
@@ -50,3 +64,11 @@ For example: when you type `$data['view_module'] = `, right after you type a sin
 
 ## Bug Report:
 If you encounter any bugs or challenges, please submit an issue in our repo.  We appreciate your help and support!
+
+[view_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/data_view_module.gif?raw=true
+[view_file]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/data_view_file.gif?raw=true
+[this_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/this_module.gif?raw=true
+[template]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/template.gif?raw=true
+[function_signature]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/function_signature.gif?raw=true
+[hover]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/hover.gif?raw=true
+[jump_to_def]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/jump_to_def.gif?raw=true
