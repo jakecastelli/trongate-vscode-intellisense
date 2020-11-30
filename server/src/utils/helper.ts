@@ -212,7 +212,8 @@ export function extractFunctions(content: string, GLOBAL_SETTINGS) {
 	const refine = allMethods.map(item => {
 		const identifier = item.name.name
 
-		if (identifier.charAt(0) === '_' || item.visibility === 'private') {
+		// if (identifier.charAt(0) === '_' || item.visibility === 'private') {
+		if (item.visibility === 'private') {
 			// if it is a private method, we do not want to expose
 			return []
 		}
