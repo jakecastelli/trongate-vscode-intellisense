@@ -61,15 +61,20 @@ export function activate(context: ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	const fsPath =workspace.workspaceFolders[0].uri.fsPath
-	const isTrongateProject = checkIsTrongateProject(fsPath)
-	if(isTrongateProject) {
 		client.registerProposedFeatures();
 		client.start();
 		client.onReady().then(() => {
 			console.log('ok, it is on')
+			try {
+				const fsPath = workspace.workspaceFolders[0].uri.fsPath
+				const isTrongateProject = checkIsTrongateProject(fsPath)
+				if (!isTrongateProject) {
+					client.stop()
+				}
+			} catch (error) {
+				console.log(error)	
+			}
 		});
-	}
 }
 
 export function deactivate(): Thenable<void> | undefined {
