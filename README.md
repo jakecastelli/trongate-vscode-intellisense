@@ -35,6 +35,8 @@ For example: when you type `$data['view_module'] = `, right after you type a sin
 * When you try to load all the public functions within the module you just loaded, for example: `$this->module('something');`:
   * `$this->something->`
 
+  ![Load up function][load_up_function]
+
 
 * Show all the public functions from the `templates/controllers/Templates.php`:
   * `$this->template('');` 
@@ -65,10 +67,11 @@ For example: when you type `$data['view_module'] = `, right after you type a sin
 ## Bug Report:
 If you encounter any bugs or challenges, please submit an issue in our repo.  We appreciate your help and support!
 
-[view_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/data_view_module.gif?raw=true
-[view_file]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/data_view_file.gif?raw=true
-[this_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/this_module.gif?raw=true
-[template]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/template.gif?raw=true
-[function_signature]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/function_signature.gif?raw=true
-[hover]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/hover.gif?raw=true
-[jump_to_def]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/dev-1/assets/demos/jump_to_def.gif?raw=true
+[view_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/data_view_module.gif?raw=true
+[view_file]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/data_view_file.gif?raw=true
+[this_module]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/this_module.gif?raw=true
+[load_up_function]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/load_up_functions.gif?raw=true 
+[template]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/template.gif?raw=true
+[function_signature]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/function_signature.gif?raw=true
+[hover]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/hover.gif?raw=true
+[jump_to_def]: https://github.com/jakecastelli/trongate-vscode-intellisense/blob/do-not-delete-this/assets/demos/jump_to_def.gif?raw=true
