@@ -7,6 +7,7 @@
 		"url": "https://github.com/jakecastelli/trongate-vscode-intellisense"
 	},
 	"publisher": "jc-sf",
+	"icon": "assets/logo/logo.png",
 	"categories": ["Programming Languages"],
 	"keywords": [
 		"Intellisense",
