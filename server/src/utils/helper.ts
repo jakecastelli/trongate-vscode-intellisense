@@ -524,7 +524,8 @@ export const functionOnDefinition = (GLOBAL_SETTINGS) => {
       const allFunctions = parseModule(targetLine, GLOBAL_SETTINGS);
 	  // const documentPosition = URI.parse(allFunctions.document_uri)
 	  const filePathConvert = path.resolve(allFunctions.document_uri).replace(/\\/g, '/');
-      const documentPosition = encodeURI(filePathConvert);
+    //   const documentPosition = encodeURI(filePathConvert);
+      const documentPosition = new URL(`file:///${filePathConvert}`);
 
       console.log("===================");
       console.log(documentPosition);
