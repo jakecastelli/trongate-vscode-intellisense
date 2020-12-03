@@ -4,3 +4,4 @@ client/server
 client/node_modules
 server/node_modules
 .vscode-test
+.vsix
